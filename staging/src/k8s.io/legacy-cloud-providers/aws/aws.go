@@ -46,7 +46,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/sts"
-	"gopkg.in/gcfg.v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 	netutils "k8s.io/utils/net"
@@ -2477,7 +2476,7 @@ func (c *Cloud) AttachDisk(diskName KubernetesVolumeID, nodeName types.NodeName)
 	attachment, err := disk.waitForAttachmentStatus("attached", awsInstance.awsID, ec2Device, alreadyAttached)
 
 	if err != nil {
-		if err == wait.ErrWaitTimeout {
+		if errors.Is(err, wait.ErrWaitTimeout) {
 			c.applyUnSchedulableTaint(nodeName, "Volume stuck in attaching state - node needs reboot to fix impaired state.")
 		}
 		return "", err

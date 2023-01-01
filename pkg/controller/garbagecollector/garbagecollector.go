@@ -359,10 +359,10 @@ func (gc *GarbageCollector) attemptToDeleteWorker(ctx context.Context, item inte
 	}
 
 	err := gc.attemptToDeleteItem(ctx, n)
-	if err == enqueuedVirtualDeleteEventErr {
+	if goerrors.Is(err, enqueuedVirtualDeleteEventErr) {
 		// a virtual event was produced and will be handled by processGraphChanges, no need to requeue this node
 		return forgetItem
-	} else if err == namespacedOwnerOfClusterScopedObjectErr {
+	} else if goerrors.Is(err, namespacedOwnerOfClusterScopedObjectErr) {
 		// a cluster-scoped object referring to a namespaced owner is an error that will not resolve on retry, no need to requeue this node
 		return forgetItem
 	} else if err != nil {

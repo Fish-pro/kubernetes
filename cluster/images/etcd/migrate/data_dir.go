@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -102,7 +103,7 @@ func (d *DataDirectory) IsEmpty() (bool, error) {
 	}
 	defer dir.Close()
 	_, err = dir.Readdirnames(1)
-	if err == io.EOF {
+	if errors.Is(err, io.EOF) {
 		return true, nil
 	}
 	return false, err

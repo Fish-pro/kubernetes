@@ -18,6 +18,7 @@ package podnodeselector
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -25,7 +26,7 @@ import (
 	"k8s.io/klog/v2"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -88,7 +89,7 @@ func readConfig(config io.Reader) *pluginConfig {
 	d := yaml.NewYAMLOrJSONDecoder(config, 4096)
 	for {
 		if err := d.Decode(defaultConfig); err != nil {
-			if err != io.EOF {
+			if !errors.Is(err, io.EOF) {
 				continue
 			}
 		}
@@ -114,7 +115,7 @@ func (p *Plugin) Admit(ctx context.Context, a admission.Attributes, o admission.
 	}
 
 	if labels.Conflicts(namespaceNodeSelector, labels.Set(pod.Spec.NodeSelector)) {
-		return errors.NewForbidden(resource, pod.Name, fmt.Errorf("pod node label selector conflicts with its namespace node label selector"))
+		return apierrors.NewForbidden(resource, pod.Name, fmt.Errorf("pod node label selector conflicts with its namespace node label selector"))
 	}
 
 	// Merge pod node selector = namespace node selector + current pod node selector
@@ -141,7 +142,7 @@ func (p *Plugin) Validate(ctx context.Context, a admission.Attributes, o admissi
 		return err
 	}
 	if labels.Conflicts(namespaceNodeSelector, labels.Set(pod.Spec.NodeSelector)) {
-		return errors.NewForbidden(resource, pod.Name, fmt.Errorf("pod node label selector conflicts with its namespace node label selector"))
+		return apierrors.NewForbidden(resource, pod.Name, fmt.Errorf("pod node label selector conflicts with its namespace node label selector"))
 	}
 
 	// whitelist verification
@@ -150,7 +151,7 @@ func (p *Plugin) Validate(ctx context.Context, a admission.Attributes, o admissi
 		return err
 	}
 	if !isSubset(pod.Spec.NodeSelector, whitelist) {
-		return errors.NewForbidden(resource, pod.Name, fmt.Errorf("pod node label selector labels conflict with its namespace whitelist"))
+		return apierrors.NewForbidden(resource, pod.Name, fmt.Errorf("pod node label selector labels conflict with its namespace whitelist"))
 	}
 
 	return nil
@@ -158,16 +159,16 @@ func (p *Plugin) Validate(ctx context.Context, a admission.Attributes, o admissi
 
 func (p *Plugin) getNamespaceNodeSelectorMap(namespaceName string) (labels.Set, error) {
 	namespace, err := p.namespaceLister.Get(namespaceName)
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		namespace, err = p.defaultGetNamespace(namespaceName)
 		if err != nil {
-			if errors.IsNotFound(err) {
+			if apierrors.IsNotFound(err) {
 				return nil, err
 			}
-			return nil, errors.NewInternalError(err)
+			return nil, apierrors.NewInternalError(err)
 		}
 	} else if err != nil {
-		return nil, errors.NewInternalError(err)
+		return nil, apierrors.NewInternalError(err)
 	}
 
 	return p.getNodeSelectorMap(namespace)

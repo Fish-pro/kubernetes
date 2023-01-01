@@ -19,6 +19,7 @@ package kubelet
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"math"
 	"net"
@@ -1836,7 +1837,7 @@ func (kl *Kubelet) syncPod(_ context.Context, updateType kubetypes.SyncPodType, 
 	if err := result.Error(); err != nil {
 		// Do not return error if the only failures were pods in backoff
 		for _, r := range result.SyncResults {
-			if r.Error != kubecontainer.ErrCrashLoopBackOff && r.Error != images.ErrImagePullBackOff {
+			if r.Error != kubecontainer.ErrCrashLoopBackOff && !errors.Is(r.Error, images.ErrImagePullBackOff) {
 				// Do not record an event here, as we keep all event logging for sync pod failures
 				// local to container runtime, so we get better errors.
 				return false, err

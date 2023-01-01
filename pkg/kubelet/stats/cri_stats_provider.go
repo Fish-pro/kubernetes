@@ -19,6 +19,7 @@ package stats
 import (
 	"context"
 	"errors"
+	goerrors "errors"
 	"fmt"
 	"path/filepath"
 	"sort"
@@ -449,7 +450,7 @@ func (p *criStatsProvider) getFsInfo(fsID *runtimeapi.FilesystemIdentifier) *cad
 	fsInfo, err := p.cadvisor.GetDirFsInfo(mountpoint)
 	if err != nil {
 		msg := "Failed to get the info of the filesystem with mountpoint"
-		if err == cadvisorfs.ErrNoSuchDevice {
+		if goerrors.Is(err, cadvisorfs.ErrNoSuchDevice) {
 			klog.V(2).InfoS(msg, "mountpoint", mountpoint, "err", err)
 		} else {
 			klog.ErrorS(err, msg, "mountpoint", mountpoint)

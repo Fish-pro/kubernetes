@@ -260,7 +260,7 @@ func createPatchSet(targetName string, patchType types.PatchType, data string) (
 	reader := utilyaml.NewYAMLReader(bufio.NewReader(buf))
 	for {
 		patch, err := reader.Read()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		} else if err != nil {
 			return nil, errors.Wrapf(err, "could not split patches for data:\n%s\n", data)

@@ -19,6 +19,7 @@ package tests
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -174,7 +175,7 @@ func TestForwardPorts(t *testing.T) {
 				defer clientConn.Close()
 
 				n, err := clientConn.Write([]byte(data))
-				if err != nil && err != io.EOF {
+				if err != nil && !errors.Is(err, io.EOF) {
 					return fmt.Errorf("%s: Error sending data '%s': %s", testName, data, err)
 				}
 				if n == 0 {
@@ -182,7 +183,7 @@ func TestForwardPorts(t *testing.T) {
 				}
 				b := make([]byte, 4)
 				_, err = clientConn.Read(b)
-				if err != nil && err != io.EOF {
+				if err != nil && !errors.Is(err, io.EOF) {
 					return fmt.Errorf("%s: Error reading data: %s", testName, err)
 				}
 				if !bytes.Equal([]byte(test.serverSends[port]), b) {

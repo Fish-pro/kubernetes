@@ -18,6 +18,7 @@ package persistentvolume
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -874,7 +875,7 @@ func runMultisyncTests(t *testing.T, tests []controllerTest, storageClasses []*s
 				ctrl.claims.Update(claim)
 				err = ctrl.syncClaim(context.TODO(), claim)
 				if err != nil {
-					if err == pvtesting.ErrVersionConflict {
+					if errors.Is(err, pvtesting.ErrVersionConflict) {
 						// Ignore version errors
 						klog.V(4).Infof("test intentionally ignores version error.")
 					} else {
@@ -891,7 +892,7 @@ func runMultisyncTests(t *testing.T, tests []controllerTest, storageClasses []*s
 				ctrl.volumes.store.Update(volume)
 				err = ctrl.syncVolume(context.TODO(), volume)
 				if err != nil {
-					if err == pvtesting.ErrVersionConflict {
+					if errors.Is(err, pvtesting.ErrVersionConflict) {
 						// Ignore version errors
 						klog.V(4).Infof("test intentionally ignores version error.")
 					} else {

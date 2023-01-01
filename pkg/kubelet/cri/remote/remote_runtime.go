@@ -801,7 +801,7 @@ func (r *remoteRuntimeService) GetContainerEvents(containerEventsCh chan *runtim
 
 	for {
 		resp, err := containerEventsStreamingClient.Recv()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			klog.ErrorS(err, "container events stream is closed")
 			return err
 		}

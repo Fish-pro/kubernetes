@@ -18,6 +18,7 @@ package util
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -806,7 +807,7 @@ func GetReliableMountRefs(mounter mount.Interface, mountPath string) ([]string, 
 		}
 		return true, nil
 	})
-	if err == wait.ErrWaitTimeout {
+	if errors.Is(err, wait.ErrWaitTimeout) {
 		return nil, lastErr
 	}
 	return paths, err

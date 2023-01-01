@@ -17,6 +17,7 @@ limitations under the License.
 package state
 
 import (
+	goerrors "errors"
 	"fmt"
 	"path/filepath"
 	"sync"
@@ -98,7 +99,7 @@ func (sc *stateCheckpoint) restoreState() error {
 	if err = sc.checkpointManager.GetCheckpoint(sc.checkpointName, checkpointV1); err != nil {
 		checkpointV1 = &CPUManagerCheckpointV1{} // reset it back to 0
 		if err = sc.checkpointManager.GetCheckpoint(sc.checkpointName, checkpointV2); err != nil {
-			if err == errors.ErrCheckpointNotFound {
+			if goerrors.Is(err, errors.ErrCheckpointNotFound) {
 				return sc.storeState()
 			}
 			return err

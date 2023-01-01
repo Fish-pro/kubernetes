@@ -17,6 +17,7 @@ limitations under the License.
 package removeall
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -81,7 +82,7 @@ func RemoveAllOneFilesystemCommon(mounter mount.Interface, path string, remove f
 				err = err1
 			}
 		}
-		if err1 == io.EOF {
+		if errors.Is(err1, io.EOF) {
 			break
 		}
 		// If Readdirnames returned an error, use it.

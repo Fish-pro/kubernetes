@@ -21,6 +21,7 @@ package procfs
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -119,7 +120,7 @@ func getPids(re *regexp.Regexp) []int {
 		// Read a small number at a time in case there are many entries, we don't want to
 		// allocate a lot here.
 		ls, err := dirFD.Readdir(10)
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {

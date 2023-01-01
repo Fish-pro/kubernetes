@@ -106,7 +106,7 @@ func ValidateConfigInfo(config *clientcmdapi.Config, discoveryTimeout time.Durat
 		}
 		return true, nil
 	})
-	if err == wait.ErrWaitTimeout {
+	if errors.Is(err, wait.ErrWaitTimeout) {
 		return nil, errors.Errorf("Abort reading the %s ConfigMap after timeout of %v", bootstrapapi.ConfigMapClusterInfo, discoveryTimeout)
 	}
 

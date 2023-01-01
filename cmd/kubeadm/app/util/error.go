@@ -96,7 +96,7 @@ func checkErr(err error, handleErr func(string, int)) {
 		return
 	}
 	switch {
-	case err == ErrExit:
+	case errors.Is(err, ErrExit):
 		handleErr("", DefaultErrorExitCode)
 	case strings.Contains(err.Error(), ErrInvalidSubCommandMsg):
 		handleErr(err.Error(), DefaultErrorExitCode)

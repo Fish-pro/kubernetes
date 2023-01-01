@@ -219,7 +219,7 @@ func IsDirEmpty(dir string) (bool, error) {
 	}
 	defer d.Close()
 	_, err = d.Readdirnames(1)
-	if err == io.EOF {
+	if errors.Is(err, io.EOF) {
 		return true, nil
 	}
 	return false, nil

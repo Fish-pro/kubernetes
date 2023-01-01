@@ -18,6 +18,7 @@ package scheduler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -129,7 +130,7 @@ func (sched *Scheduler) schedulingCycle(
 	pod := podInfo.Pod
 	scheduleResult, err := sched.SchedulePod(ctx, fwk, state, pod)
 	if err != nil {
-		if err == ErrNoNodesAvailable {
+		if errors.Is(err, ErrNoNodesAvailable) {
 			status := framework.NewStatus(framework.UnschedulableAndUnresolvable).WithError(err)
 			return ScheduleResult{nominatingInfo: clearNominatedNode}, podInfo, status
 		}
@@ -860,7 +861,7 @@ func (sched *Scheduler) handleSchedulingFailure(ctx context.Context, fwk framewo
 	err := status.AsError()
 	errMsg := status.Message()
 
-	if err == ErrNoNodesAvailable {
+	if errors.Is(err, ErrNoNodesAvailable) {
 		klog.V(2).InfoS("Unable to schedule pod; no nodes are registered to the cluster; waiting", "pod", klog.KObj(pod), "err", err)
 	} else if fitError, ok := err.(*framework.FitError); ok {
 		// Inject UnschedulablePlugins to PodInfo, which will be used later for moving Pods between queues efficiently.

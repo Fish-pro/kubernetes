@@ -88,7 +88,7 @@ func SplitYAMLDocuments(yamlBytes []byte) (kubeadmapi.DocumentMap, error) {
 	for {
 		// Read one YAML document at a time, until io.EOF is returned
 		b, err := reader.Read()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		} else if err != nil {
 			return nil, err

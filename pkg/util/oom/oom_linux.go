@@ -20,6 +20,7 @@ limitations under the License.
 package oom
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -107,7 +108,7 @@ func (oomAdjuster *OOMAdjuster) applyOOMScoreAdjContainer(cgroupName string, oom
 					klog.V(10).Infof("pid %d needs to be set", pid)
 					if err = oomAdjuster.ApplyOOMScoreAdj(pid, oomScoreAdj); err == nil {
 						adjustedProcessSet[pid] = true
-					} else if err == os.ErrNotExist {
+					} else if errors.Is(err, os.ErrNotExist) {
 						continue
 					} else {
 						klog.V(10).Infof("cannot adjust oom score for pid %d - %v", pid, err)

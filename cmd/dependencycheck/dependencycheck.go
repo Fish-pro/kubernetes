@@ -22,6 +22,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -75,7 +76,7 @@ func main() {
 	for {
 		pkg := goPackage{}
 		if err := decoder.Decode(&pkg); err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			log.Fatalf("Error unmarshaling dependencies file: %v", err)

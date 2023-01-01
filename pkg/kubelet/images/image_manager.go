@@ -18,6 +18,7 @@ package images
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -157,7 +158,7 @@ func (m *imageManager) EnsureImageExists(ctx context.Context, pod *v1.Pod, conta
 	if imagePullResult.err != nil {
 		m.logIt(ref, v1.EventTypeWarning, events.FailedToPullImage, logPrefix, fmt.Sprintf("Failed to pull image %q: %v", container.Image, imagePullResult.err), klog.Warning)
 		m.backOff.Next(backOffKey, m.backOff.Clock.Now())
-		if imagePullResult.err == ErrRegistryUnavailable {
+		if errors.Is(imagePullResult.err, ErrRegistryUnavailable) {
 			msg := fmt.Sprintf("image pull failed for %s because the registry is unavailable.", container.Image)
 			return "", msg, imagePullResult.err
 		}

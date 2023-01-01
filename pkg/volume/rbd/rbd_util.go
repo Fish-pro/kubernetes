@@ -23,6 +23,7 @@ package rbd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -39,7 +40,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/util/errors"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	volumehelpers "k8s.io/cloud-provider/volume/helpers"
 	"k8s.io/kubernetes/pkg/util/node"
@@ -423,7 +424,7 @@ func (util *rbdUtil) AttachDisk(b rbdMounter) (string, error) {
 				return !used, nil
 			})
 			// Return error if rbd image has not become available for the specified timeout.
-			if err == wait.ErrWaitTimeout {
+			if errors.Is(err, wait.ErrWaitTimeout) {
 				return "", fmt.Errorf("rbd image %s/%s is still being used", b.Pool, b.Image)
 			}
 			// Return error if any other errors were encountered during waiting for the image to become available.
@@ -452,7 +453,7 @@ func (util *rbdUtil) AttachDisk(b rbdMounter) (string, error) {
 			if err != nil {
 				errList = append(errList, err)
 				outputList = append(outputList, output...)
-				return "", fmt.Errorf("rbd: map failed %v, rbd output: %s", errors.NewAggregate(errList), string(outputList))
+				return "", fmt.Errorf("rbd: map failed %v, rbd output: %s", utilerrors.NewAggregate(errList), string(outputList))
 			}
 			devicePath, mapped = waitForPath(b.Pool, b.Image, 10 /*maxRetries*/, true /*useNbdDrive*/)
 		} else {

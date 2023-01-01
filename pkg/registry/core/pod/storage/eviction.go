@@ -18,13 +18,14 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"time"
 
 	policyv1 "k8s.io/api/policy/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -127,11 +128,11 @@ func propagateDryRun(eviction *policy.Eviction, options *metav1.CreateOptions) (
 func (r *EvictionREST) Create(ctx context.Context, name string, obj runtime.Object, createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
 	eviction, ok := obj.(*policy.Eviction)
 	if !ok {
-		return nil, errors.NewBadRequest(fmt.Sprintf("not a Eviction object: %T", obj))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("not a Eviction object: %T", obj))
 	}
 
 	if name != eviction.Name {
-		return nil, errors.NewBadRequest("name in URL does not match name in Eviction object")
+		return nil, apierrors.NewBadRequest("name in URL does not match name in Eviction object")
 	}
 
 	originalDeleteOptions, err := propagateDryRun(eviction, options)
@@ -148,7 +149,7 @@ func (r *EvictionREST) Create(ctx context.Context, name string, obj runtime.Obje
 	var pod *api.Pod
 	deletedPod := false
 	// by default, retry conflict errors
-	shouldRetry := errors.IsConflict
+	shouldRetry := apierrors.IsConflict
 	if !resourceVersionIsUnset(originalDeleteOptions) {
 		// if the original options included a resourceVersion precondition, don't retry
 		shouldRetry = func(err error) bool { return false }
@@ -266,8 +267,8 @@ func (r *EvictionREST) Create(ctx context.Context, name string, obj runtime.Obje
 		})
 		return err
 	}()
-	if err == wait.ErrWaitTimeout {
-		err = errors.NewTimeoutError(fmt.Sprintf("couldn't update PodDisruptionBudget %q due to conflicts", pdbName), 10)
+	if errors.Is(err, wait.ErrWaitTimeout) {
+		err = apierrors.NewTimeoutError(fmt.Sprintf("couldn't update PodDisruptionBudget %q due to conflicts", pdbName), 10)
 	}
 	if err != nil {
 		return nil, err
@@ -293,7 +294,7 @@ func (r *EvictionREST) Create(ctx context.Context, name string, obj runtime.Obje
 	// Try the delete
 	err = addConditionAndDeletePod(r, ctx, eviction.Name, rest.ValidateAllObjectFunc, deleteOptions)
 	if err != nil {
-		if errors.IsConflict(err) && updateDeletionOptions &&
+		if apierrors.IsConflict(err) && updateDeletionOptions &&
 			(originalDeleteOptions.Preconditions == nil || originalDeleteOptions.Preconditions.ResourceVersion == nil) {
 			// If we encounter a resource conflict error, we updated the deletion options to include them,
 			// and the original deletion options did not specify ResourceVersion, we send back
@@ -378,7 +379,7 @@ func createTooManyRequestsError(name string) error {
 	// budgets, we can sometimes compute a sensible suggested value.  But
 	// even without that, we can give a suggestion (even if small) that
 	// prevents well-behaved clients from hammering us.
-	err := errors.NewTooManyRequests("Cannot evict pod as it would violate the pod's disruption budget.", 10)
+	err := apierrors.NewTooManyRequests("Cannot evict pod as it would violate the pod's disruption budget.", 10)
 	err.ErrStatus.Details.Causes = append(err.ErrStatus.Details.Causes, metav1.StatusCause{Type: policyv1.DisruptionBudgetCause, Message: fmt.Sprintf("The disruption budget %s is still being processed by the server.", name)})
 	return err
 }
@@ -390,13 +391,13 @@ func (r *EvictionREST) checkAndDecrement(namespace string, podName string, pdb p
 		return createTooManyRequestsError(pdb.Name)
 	}
 	if pdb.Status.DisruptionsAllowed < 0 {
-		return errors.NewForbidden(policy.Resource("poddisruptionbudget"), pdb.Name, fmt.Errorf("pdb disruptions allowed is negative"))
+		return apierrors.NewForbidden(policy.Resource("poddisruptionbudget"), pdb.Name, fmt.Errorf("pdb disruptions allowed is negative"))
 	}
 	if len(pdb.Status.DisruptedPods) > MaxDisruptedPodSize {
-		return errors.NewForbidden(policy.Resource("poddisruptionbudget"), pdb.Name, fmt.Errorf("DisruptedPods map too big - too many evictions not confirmed by PDB controller"))
+		return apierrors.NewForbidden(policy.Resource("poddisruptionbudget"), pdb.Name, fmt.Errorf("DisruptedPods map too big - too many evictions not confirmed by PDB controller"))
 	}
 	if pdb.Status.DisruptionsAllowed == 0 {
-		err := errors.NewTooManyRequests("Cannot evict pod as it would violate the pod's disruption budget.", 0)
+		err := apierrors.NewTooManyRequests("Cannot evict pod as it would violate the pod's disruption budget.", 0)
 		err.ErrStatus.Details.Causes = append(err.ErrStatus.Details.Causes, metav1.StatusCause{Type: policyv1.DisruptionBudgetCause, Message: fmt.Sprintf("The disruption budget %s needs %d healthy pods and has %d currently", pdb.Name, pdb.Status.DesiredHealthy, pdb.Status.CurrentHealthy)})
 		return err
 	}
